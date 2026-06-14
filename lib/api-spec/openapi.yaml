@@ -1,0 +1,408 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: API specification
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: server
+    description: Dev server control
+  - name: github
+    description: GitHub integration
+
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /server/status:
+    get:
+      operationId: getServerStatus
+      tags: [server]
+      summary: Get dev server status
+      description: Returns the current running state and recent log lines of the dev server
+      responses:
+        "200":
+          description: Status retrieved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerStatus"
+
+  /server/start:
+    post:
+      operationId: startServer
+      tags: [server]
+      summary: Start the dev server
+      responses:
+        "200":
+          description: Server started
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerActionResult"
+
+  /server/stop:
+    post:
+      operationId: stopServer
+      tags: [server]
+      summary: Stop the dev server
+      responses:
+        "200":
+          description: Server stopped
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerActionResult"
+
+  /server/restart:
+    post:
+      operationId: restartServer
+      tags: [server]
+      summary: Restart the dev server
+      responses:
+        "200":
+          description: Server restarted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerActionResult"
+
+  /server/logs:
+    get:
+      operationId: getServerLogs
+      tags: [server]
+      summary: Get recent server logs
+      description: Returns recent log lines from the running dev server
+      parameters:
+        - name: lines
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 100
+      responses:
+        "200":
+          description: Logs retrieved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LogResponse"
+
+  /github/push:
+    post:
+      operationId: githubPush
+      tags: [github]
+      summary: Push project files to GitHub
+      description: Creates or updates a GitHub repo and pushes project files, auto-generating README and CI workflow
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GithubPushInput"
+      responses:
+        "200":
+          description: Push completed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GithubPushResult"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /github/repos:
+    get:
+      operationId: listGithubRepos
+      tags: [github]
+      summary: List user GitHub repositories
+      description: Lists the authenticated user's repos (requires token query param)
+      parameters:
+        - name: token
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Repos listed
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/GithubRepo"
+        "401":
+          description: Unauthorized
+
+  /github/deploy:
+    post:
+      operationId: githubDeploy
+      tags: [github]
+      summary: Trigger a deployment
+      description: Triggers a deployment to GitHub Pages or Vercel
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeployInput"
+      responses:
+        "200":
+          description: Deployment triggered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeployResult"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /github/deploy/status:
+    get:
+      operationId: getDeployStatus
+      tags: [github]
+      summary: Get deployment status
+      description: Returns the latest deployment status for a repo
+      parameters:
+        - name: token
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: owner
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Status retrieved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeployStatusResponse"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+
+    ServerStatus:
+      type: object
+      properties:
+        running:
+          type: boolean
+        pid:
+          type: ["integer", "null"]
+        uptime:
+          type: ["number", "null"]
+        recentLogs:
+          type: array
+          items:
+            type: string
+      required:
+        - running
+        - recentLogs
+
+    ServerActionResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+      required:
+        - success
+        - message
+
+    LogResponse:
+      type: object
+      properties:
+        lines:
+          type: array
+          items:
+            type: string
+        total:
+          type: integer
+      required:
+        - lines
+        - total
+
+    GithubPushInput:
+      type: object
+      properties:
+        token:
+          type: string
+        repoName:
+          type: string
+        description:
+          type: string
+        private:
+          type: boolean
+        files:
+          type: array
+          items:
+            $ref: "#/components/schemas/FileEntry"
+        generateReadme:
+          type: boolean
+        generateCi:
+          type: boolean
+        commitMessage:
+          type: string
+      required:
+        - token
+        - repoName
+        - files
+
+    FileEntry:
+      type: object
+      properties:
+        path:
+          type: string
+        content:
+          type: string
+      required:
+        - path
+        - content
+
+    GithubPushResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+        repoUrl:
+          type: string
+        filesCommitted:
+          type: integer
+        commitSha:
+          type: string
+          description: Short (7-char) commit SHA of the last pushed commit
+        isNewRepo:
+          type: boolean
+          description: Whether the repository was newly created
+        filesAdded:
+          type: integer
+          description: Number of new files created in this push
+        filesChanged:
+          type: integer
+          description: Number of existing files updated in this push
+        message:
+          type: string
+      required:
+        - success
+        - filesCommitted
+        - message
+
+    GithubRepo:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        fullName:
+          type: string
+        private:
+          type: boolean
+        htmlUrl:
+          type: string
+        description:
+          type: ["string", "null"]
+        updatedAt:
+          type: string
+      required:
+        - id
+        - name
+        - fullName
+        - private
+        - htmlUrl
+        - updatedAt
+
+    DeployInput:
+      type: object
+      properties:
+        token:
+          type: string
+        owner:
+          type: string
+        repo:
+          type: string
+        target:
+          type: string
+          enum: [github-pages, vercel]
+        vercelWebhookUrl:
+          type: ["string", "null"]
+      required:
+        - token
+        - owner
+        - repo
+        - target
+
+    DeployResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        deployUrl:
+          type: ["string", "null"]
+      required:
+        - success
+        - message
+
+    DeployStatusResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [pending, in_progress, success, failure, unknown]
+        deployUrl:
+          type: ["string", "null"]
+        updatedAt:
+          type: ["string", "null"]
+        message:
+          type: ["string", "null"]
+      required:
+        - status
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
