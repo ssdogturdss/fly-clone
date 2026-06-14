@@ -1,0 +1,37 @@
+{
+  "name": "GitPanel — Replit to GitHub",
+  "short_name": "GitPanel",
+  "description": "Push your Replit app to GitHub and manage deployments from your iPhone",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0d1117",
+  "theme_color": "#0d1117",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["developer", "productivity"],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "url": "/",
+      "description": "View server status"
+    },
+    {
+      "name": "GitHub Sync",
+      "url": "/github",
+      "description": "Push to GitHub"
+    }
+  ]
+}
